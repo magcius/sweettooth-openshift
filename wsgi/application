@@ -1,17 +1,39 @@
-#!/usr/bin/env python
 
 import os
+import site
 import sys
 
-os.environ['DJANGO_SETTINGS_MODULE'] = 'openshift.settings'
-sys.path.append(os.path.join(os.environ['OPENSHIFT_REPO_DIR'], 'wsgi', 'openshift'))
-virtenv = os.environ['APPDIR'] + '/virtenv/'
-os.environ['PYTHON_EGG_CACHE'] = os.path.join(virtenv, 'lib/python2.6/site-packages')
-virtualenv = os.path.join(virtenv, 'bin/activate_this.py')
-try:
-    execfile(virtualenv, dict(__file__=virtualenv))
-except:
-    pass
+os.environ['DJANGO_SETTINGS_MODULE'] = 'sweettooth.settings'
+
+_venv = os.path.join(os.environ['OPENSHIFT_APP_DIR'], 'virtenv/lib/python2.6/site-packages/')
+if os.path.exists(_venv):
+    site.addsitedir(_venv)
+
+# we are in ego/wsgi/
+# we want to be in ego/sweettooth (for settings) and ego/sweettooth/sweettooth
+_path = os.path.join(os.path.dirname(__file__), '..', 'sweettooth')
+sys.path.extend([_path, os.path.join(_path, 'sweettooth')])
+
+USE_DONT_PANIC = True
+
+def _DONT_PANIC(application):
+    """
+    Try to use DON'T PANIC, your friendly Werkzeug debugger
+    """
+    try:
+        from werkzeug import DebuggedApplication
+    except ImportError:
+        return application
+
+    from django.views import debug
+    def null_technical_500_response(request, exc_type, exc_value, tb):
+        raise exc_type, exc_value, tb
+    debug.technical_500_response = null_technical_500_response
+
+    return DebuggedApplication(application, True)
 
 import django.core.handlers.wsgi
 application = django.core.handlers.wsgi.WSGIHandler()
+
+if USE_DONT_PANIC:
+    application = _DONT_PANIC(application)

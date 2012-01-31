@@ -1,0 +1,3 @@
+[submodule "sweettooth"]
+	path = sweettooth
+	url = git://git.gnome.org/extensions-web.git
